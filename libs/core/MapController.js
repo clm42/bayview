@@ -212,12 +212,12 @@ define([
                 if(args.geometry.type === 'point') {
                       var symbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, 20,
                           new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
-                          new Color([255, 0, 0]), 1),
+                          new Color([124, 252, 0]), 1),
                           new Color([255, 255, 255, 0.25]));
                 } else if (args.geometry.type === 'polygon') {
                     var symbol = new SimpleFillSymbol(SimpleFillSymbol.STYLE_SOLID,
                           new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
-                          new Color([255,0,0]), 2),new Color([255,255,255,0.25])
+                          new Color([124, 252, 0]), 3),new Color([255,255,255,0.25])
                         );
                 }
 

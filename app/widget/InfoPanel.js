@@ -34,9 +34,11 @@ define([
 
     'core/queryUtils',
     'core/layerUtils',
+    'core/graphicUtils',
 
     'esri/tasks/query',
     'esri/geometry/Circle',
+    'esri/geometry/Point',
 
     './InfoRow',
     './InfoBox',
@@ -46,10 +48,8 @@ define([
 
   function(
     declare, WidgetBase, TemplatedMixin, WidgetsInTemplateMixin, Evented,
-    lang, connect, topic, parser, query, on, domStyle, domClass, domAttr, domConstruct, deferredAll, registry,
-    queryUtils, layerUtils,
-    Query, Circle,
-    InfoRow, InfoBox,
+    lang, connect, topic, parser, query, on, domStyle, domClass, domAttr, domConstruct, 
+    deferredAll, registry, queryUtils, layerUtils, graphicUtils, Query, Circle, Point, InfoRow, InfoBox,
     template
   ) {
 
@@ -65,6 +65,7 @@ define([
             this.newline = '\r\n'; // Character sequence to consider a newline. Defaults to "\r\n" (CRLF) as per RFC 4180.
             this.trim = false; // If true, leading/trailing space will be trimmed from any unquoted values.
             this.fieldNames = null; //["Name"], // If specified, indicates names of fields in the order they appear in CSV records.  If unspecified, the first line of the CSV will be treated as a header row, and field names will be populated from there.
+
         },
 
         postCreate: function() {
@@ -79,10 +80,12 @@ define([
             this.own(on(this.oneMBufferBtn, 'click', lang.hitch(this, this._btnAnalyzeClicked, 1)));
             this.own(on(this.threeMBufferBtn, 'click', lang.hitch(this, this._btnAnalyzeClicked, 3)));
             this.own(on(this.fiveMBufferBtn, 'click', lang.hitch(this, this._btnAnalyzeClicked, 5)));
-
+            
+            this.graphicUtils = new graphicUtils(this.map);
         },
 
         startup: function() {
+
         },
 
         showDetails: function(layerId, selectedFeature) {
@@ -103,6 +106,9 @@ define([
                         //console.debug('found Parecel ID', this.selectedFeature.attributes[info.field]);
                         domAttr.set(this.btnDetailsLink, 'href', this.detailsLink + this.selectedFeature.attributes[info.field]);
                     }
+                    if (info.field === 'E_LINK') {
+                        domAttr.set(this.btnDetailsLink, 'href', this.selectedFeature.attributes[info.field]);
+                    }
                     //value for InfoRow defaults to attribute value
                     value = this.selectedFeature.attributes[info.field]
                     var fieldDef = this.selectedFeature._layer.fields.filter(function(obj){
@@ -113,7 +119,9 @@ define([
                         var domain = fieldDef.domain.codedValues.filter(lang.hitch(this, function(obj){
                             return obj.code == this.selectedFeature.attributes[info.field];
                         }))[0];
-                        value = domain.name;
+						if (domain){
+                        	value = domain.name;
+						}
                     };
                     //check if layer has subtype
                     if (this.selectedFeature._layer.typeIdField !== null) {
@@ -121,22 +129,27 @@ define([
                             return obj.id == this.selectedFeature.attributes[this.selectedFeature._layer.typeIdField];
                         }))[0];
                         //use subtype value if this is subtype field
-                        if (this.selectedFeature._layer.typeIdField == info.field){
-                            value = subtype.name;
-                        }
+						if (subtype){
+							if (this.selectedFeature._layer.typeIdField == info.field){
+								value = subtype.name;
+							}
+						}
                         //use domain values for subtype is this field has a corresponding domain
                         if (subtype.domains.hasOwnProperty(info.field)) {
                             var domain = subtype.domains[info.field].codedValues.filter(lang.hitch(this, function(obj){
                                 return obj.code == this.selectedFeature.attributes[info.field];
                             }))[0];
-                            value = domain.name;
+                            if (domain){
+                        		value = domain.name;
+							}
                         }
                     };
-
-                    InfoRow({
-                        label: info.label,
-                        value: value
-                    }).placeAt(this.detailsContainer);
+                    if (info.field != 'E_LINK') {
+                        InfoRow({
+                            label: info.label,
+                            value: value
+                        }).placeAt(this.detailsContainer);
+                    }
                 }));
                 this._initButtons(this.layerConfig);
             }
@@ -144,9 +157,27 @@ define([
 
         showPanel: function() {
             query('#infoPanelWrapper').removeClass('is-hidden');
+            this.graphicUtils.drawGraphic(this.getSelectedGraphic());
         },
 
+        getSelectedGraphic: function () {
+            var g;
+            if (this.selectedFeature && this.selectedFeature.location){
+                // results are from geocoder
+                g = new Point({
+                  "x": this.selectedFeature.location.x,
+                  "y": this.selectedFeature.location.y,
+                  "spatialReference": {"wkid": this.selectedFeature.location.spatialReference.wkid}
+                }); 
+              } else {
+                g = this.selectedFeature.geometry;
+              }
+              return g;
+        },
+
+
         hidePanel: function() {
+
             query('#infoPanelWrapper').addClass('is-hidden');
             dojo.empty(this.detailsContainer);
             dojo.empty(this.bufferContainer);
@@ -156,6 +187,10 @@ define([
             domClass.add(this.bufferOptions, 'is-hidden');
             domClass.add(this.btnPrint, 'is-hidden');
             domClass.add(this.btnExport, 'is-hidden');
+
+            if (this.selectedFeature && this.selectedFeature.geometry){
+                this.graphicUtils.removeGraphic(this.getSelectedGraphic());
+            }
         },
 
         clear: function() {
