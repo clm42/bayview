@@ -38,7 +38,7 @@ define([
     },
 
     post: function(args) {
-      var timeoutValue = 60000; // 1 minute
+      var timeoutValue = 120000; // 1 minute
       if (args.timeout || args.timeout === 0) {
         timeoutValue = args.timeout;
       }

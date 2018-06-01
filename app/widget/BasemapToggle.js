@@ -72,6 +72,9 @@ function(
             this.basemapName.innerHTML = 'Streets View';
         }
 
+        var vis = this.basemapName.innerHTML === 'Streets View' ? true:false;
+        this.map.getLayer("world_trans").setVisibility(vis);
+
         // Switch thumbnail image
         domClass.toggle(this.basemapStreetThumb, 'is-hidden');
         domClass.toggle(this.basemapSatThumb, 'is-hidden');
